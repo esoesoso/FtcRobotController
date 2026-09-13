@@ -15,8 +15,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.mechanisms.MecanumDrive;
 
-import java.util.function.ToIntFunction;
-
 @TeleOp
 public class TestFull_IMU extends OpMode {
 
@@ -24,6 +22,7 @@ public class TestFull_IMU extends OpMode {
     double forward, strafe, rotate;
 
     public double step = 0;
+    public double step2 = 0;
     public static final double TICKS_PER_REV = 8192.0;
     public static final double GEAR_RATIO = 3.59;
     double ANGLE_30_DEGREES = 0.09504, ANGLE_25_DEGREES = 0.0792, ANGLE_20_DEGREES = 0.06336;
@@ -31,7 +30,6 @@ public class TestFull_IMU extends OpMode {
     private DcMotorEx encoder;
     DcMotorEx leftTurretMotor, rightTurretMotor;
 
-    boolean shooting = false;
     enum BurstState { IDLE, BALL_1_AND_2, PAUSE, BALL_3 }
     BurstState burstState = BurstState.IDLE;
     ElapsedTime shootTimer = new ElapsedTime();
@@ -47,6 +45,10 @@ public class TestFull_IMU extends OpMode {
     public double lowVelocity = 0;
     double curTargetVelocity = highVelocity;
 
+    //
+    double[] stepSizes = {10.0, 1.0, 0.1, 0.01, 0.001};
+    int stepIndex = 1;
+    //
     @Override
     public void init() {
 
@@ -75,7 +77,8 @@ public class TestFull_IMU extends OpMode {
 
     @Override
     public void loop() {
-        drive.setServoPos(step);
+        drive.setServoHoodPos(step);
+        drive.setServoBlockerPos(step2);
 
         // Encoder
         int currentTicks = encoder.getCurrentPosition();
@@ -115,11 +118,15 @@ public class TestFull_IMU extends OpMode {
         if(gamepad1.dpadDownWasPressed()) {
             step -= ANGLE_2_5_DEGREES;
         }
-        if(gamepad1.dpadLeftWasPressed()) {
-            step = 0;
+
+        if(gamepad1.yWasPressed()) {
+            stepIndex = (stepIndex + 1) % stepSizes.length;
         }
         if(gamepad1.dpadRightWasPressed()) {
-            step = ANGLE_30_DEGREES;
+            step2 += stepSizes[stepIndex];
+        }
+        if(gamepad1.dpadLeftWasPressed()) {
+            step2 -= stepSizes[stepIndex]; // 0.02
         }
 
         telemetry.addData("Heading", drive.getHeading(AngleUnit.RADIANS));
@@ -153,41 +160,10 @@ public class TestFull_IMU extends OpMode {
         }
 
         // Shooting
-
-        switch (burstState) {
-            case IDLE:
-                if(gamepad1.b) {
-                    shootTimer.reset();
-                    burstState = BurstState.BALL_1_AND_2;
-                } else {
-                    drive.setMotorSpeed(0.0);
-                }
-                break;
-
-            case BALL_1_AND_2:
-                drive.setMotorSpeed(1.0);
-                if(shootTimer.milliseconds() >= BURST_TIME_MS) {
-                    drive.setMotorSpeed(0.0);
-                    shootTimer.reset();
-                    burstState = BurstState.PAUSE;
-                }
-                break;
-
-            case PAUSE:
-                drive.setMotorSpeed(0.0);
-                if(shootTimer.milliseconds() >= PAUSE_TIME_MS) {
-                    shootTimer.reset();
-                    burstState = BurstState.BALL_3;
-                }
-                break;
-
-            case BALL_3:
-                drive.setMotorSpeed(1.0);
-                if(shootTimer.milliseconds() >= BALL_3_TIME_MS) {
-                    drive.setMotorSpeed(0.0);
-                    burstState = BurstState.IDLE;
-                }
-                break;
+        if(gamepad1.b) {
+            drive.setMotorSpeed(0.75);
+        } else {
+            drive.setMotorSpeed(0);
         }
 
         // Telemetry
@@ -201,5 +177,7 @@ public class TestFull_IMU extends OpMode {
         telemetry.addData("Current Velocity", "%.2f", curVelocity);
         telemetry.addData("Error", "%.2f", error);
         telemetry.addData("Degress Hood", resultInDegrees+"°");
+        telemetry.addData("Blocker Pos", step2);
+        telemetry.addData("Step Size", "%.4f B", stepSizes[stepIndex]);
     }
 }

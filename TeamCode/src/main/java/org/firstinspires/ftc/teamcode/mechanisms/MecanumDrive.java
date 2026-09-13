@@ -18,6 +18,7 @@ public class MecanumDrive {
     private DcMotorEx frontLeftMotor, backLeftMotor, frontRightMotor, backRightMotor, intakeMotorRight;
     private CRServo servoTurretLeft, servoTurretRight;
     private Servo servoHood;
+    private Servo servoBlocker;
     private IMU imu;
 
     // PIDF
@@ -60,6 +61,7 @@ public class MecanumDrive {
         servoTurretLeft = hwMap.get(CRServo.class, "servo_tureta_stanga");
         servoTurretRight = hwMap.get(CRServo.class, "servo_tureta_dreapta");
         servoHood = hwMap.get(Servo.class, "servo_hood");
+        servoBlocker = hwMap.get(Servo.class, "servo_blocker");
 
         // Turret
     }
@@ -112,8 +114,12 @@ public class MecanumDrive {
         servoTurretRight.setPower(power);
     }
 
-    public void setServoPos(double pos) {
+    public void setServoHoodPos(double pos) {
         servoHood.setPosition(pos);
+    }
+
+    public void setServoBlockerPos(double pos) {
+        servoBlocker.setPosition(pos);
     }
 }
 
